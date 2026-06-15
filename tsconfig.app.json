@@ -1,0 +1,14 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "outDir": "./out-tsc/app",
+    "rootDir": "./src"
+  },
+  "include": [
+    "src/**/*.ts",
+    "src/app/features/login/login.component.html"  
+  ],
+  "exclude": [
+    "src/**/*.spec.ts"
+  ]
+}

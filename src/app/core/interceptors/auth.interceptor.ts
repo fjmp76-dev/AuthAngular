@@ -1,0 +1,37 @@
+import { HttpInterceptorFn, HttpErrorResponse } from '@angular/common/http';
+import { inject } from '@angular/core';
+import { catchError, throwError } from 'rxjs';
+import { AuthService } from '../services/auth.service';
+import { Router } from '@angular/router';
+
+export const authInterceptor: HttpInterceptorFn = (req, next) => {
+  const authService = inject(AuthService);
+  const router = inject(Router);
+
+  const token = authService.getToken();
+
+  const authReq = token
+    ? req.clone({
+        setHeaders: { Authorization: `Bearer ${token}` }
+      })
+    : req;
+
+  return next(authReq).pipe(
+    catchError((error: HttpErrorResponse) => {
+      if (error.status === 401) {
+        // Si el error viene del login, no redirigir — dejar que el componente lo maneje
+        const isLoginRequest = req.url.includes('/auth/login');
+
+        if (!isLoginRequest) {
+          const tokenExpired = error.headers.get('X-Token-Expired');
+          if (tokenExpired === 'true') {
+            console.warn('Sesión expirada');
+          }
+          authService.logout();
+          router.navigate(['/login']);
+        }
+       }
+      return throwError(() => error);
+    })
+  );
+};
