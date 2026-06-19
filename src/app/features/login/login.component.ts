@@ -1,4 +1,4 @@
-import { Component, NgZone, ChangeDetectorRef } from '@angular/core';
+import { Component, signal, inject, ChangeDetectorRef, NgZone } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
@@ -25,52 +25,38 @@ import { AuthService } from '../../core/services/auth.service';
   styleUrl: './login.component.scss'
 })
 export class LoginComponent {
-  loginForm: FormGroup;
-  loading = false;
-  errorMessage = '';
-  hidePassword = true;
+  private fb = inject(FormBuilder);
+  private authService = inject(AuthService);
+  private router = inject(Router);
+  private ngZone = inject(NgZone);
 
-  constructor(
-    private fb: FormBuilder,
-    private authService: AuthService,
-    private router: Router,
-    private ngZone: NgZone,
-    private cdr: ChangeDetectorRef
-  ) {
-    this.loginForm = this.fb.group({
-      username: ['', [Validators.required, Validators.minLength(3)]],
-      password: ['', [Validators.required, Validators.minLength(6)]]
-    });
-  }
+  loginForm: FormGroup = this.fb.group({
+    username: ['', [Validators.required, Validators.minLength(3)]],
+    password: ['', [Validators.required, Validators.minLength(6)]]
+  });
 
-  onSubmit(): void {
-    if (this.loginForm.invalid) return;
+  // Signals en lugar de propiedades normales
+  loading = signal(false);
+  errorMessage = signal('');
+  hidePassword = signal(true);
 
-    this.loading = true;
-    this.errorMessage = '';
-    this.cdr.detectChanges();
+onSubmit(): void {
+  if (this.loginForm.invalid) return;
 
-    this.authService.login(this.loginForm.value).subscribe({
-      next: (response) => {
-        this.ngZone.run(() => {
-          if (response.success) {
-            this.router.navigate(['/dashboard']);
-          } else {
-            this.loading = false;
-            this.errorMessage = 'Usuario o contraseña incorrectos';
-            this.cdr.detectChanges();
-          }
-        });
-      },
-      error: (err) => {
-        this.ngZone.run(() => {
-          this.loading = false;
-          this.errorMessage = err.status === 401
+  this.loading.set(true);
+  this.errorMessage.set('');
+
+  this.authService.login(this.loginForm.value).subscribe({
+    error: (err) => {
+      this.ngZone.run(() => {
+        this.loading.set(false);
+        this.errorMessage.set(
+          err.status === 401
             ? 'Usuario o contraseña incorrectos'
-            : 'Error al conectar con el servidor';
-          this.cdr.detectChanges();
-        });
-      }
-    });
-  }
+            : 'Error al conectar con el servidor'
+        );
+      });
+    }
+  });
+}
 }

@@ -6,7 +6,8 @@
   },
   "include": [
     "src/**/*.ts",
-    "src/app/features/login/login.component.html"  
+    "src/app/features/login/login.component.html",
+    "src/app/features/no-access/no-access.component.css"
   ],
   "exclude": [
     "src/**/*.spec.ts"

@@ -1,0 +1,14 @@
+<div class="landing-container">
+  <mat-card class="welcome-card">
+    <mat-card-content>
+      <div class="welcome-content">
+        <mat-icon class="welcome-icon">waving_hand</mat-icon>
+        <h1>Bienvenido, {{ user()?.username }}!</h1>
+        <p class="role">{{ user()?.role }}</p>
+        <p class="message">
+          Selecciona una opción del menú para comenzar.
+        </p>
+      </div>
+    </mat-card-content>
+  </mat-card>
+</div>
