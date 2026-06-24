@@ -64,3 +64,14 @@ export class CurrentUser implements ICurrentUser {
     return this.permissions.some(p => p.screen.toLowerCase() === screen.toLowerCase() && p.level !== PermissionLevel.N);
   }
 }
+
+ export interface CapturaRecord {
+  id: number;
+  nombre: string;
+  apellido: string;
+  email: string;
+  telefono: string;
+  direccion: string;
+  ciudad: string;
+  notas: string;
+}

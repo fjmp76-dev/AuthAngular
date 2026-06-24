@@ -20,7 +20,7 @@
       }
 
       <!-- Tabla -->
-      <table mat-table [dataSource]="pagedRecords()" class="full-width">
+      <table mat-table [dataSource]="getPagedRecords()" class="full-width">
 
         <ng-container matColumnDef="id">
           <th mat-header-cell *matHeaderCellDef>#</th>
@@ -77,8 +77,8 @@
           </td>
         </ng-container>
 
-        <tr mat-header-row *matHeaderRowDef="displayedColumns()"></tr>
-        <tr mat-row *matRowDef="let row; columns: displayedColumns();"></tr>
+        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
       </table>
 
       <!-- Paginador -->

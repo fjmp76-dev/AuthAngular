@@ -1,4 +1,4 @@
-import { Component, inject, signal, computed, ChangeDetectorRef } from '@angular/core';
+import { Component, inject, signal, computed, ChangeDetectorRef, OnInit } from '@angular/core';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
@@ -10,19 +10,10 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatDividerModule } from '@angular/material/divider';
-import { RouterLink } from '@angular/router';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { UserContextService } from '../../core/services/user-context.service';
-
-export interface CapturaRecord {
-  id: number;
-  nombre: string;
-  apellido: string;
-  email: string;
-  telefono: string;
-  direccion: string;
-  ciudad: string;
-  notas: string;
-}
+import { CapturaService } from '../../core/services/captura.service';
+import { CapturaRecord } from '../../core/models/auth.models';
 
 type FormMode = 'hidden' | 'add' | 'view' | 'edit';
 
@@ -40,55 +31,37 @@ type FormMode = 'hidden' | 'add' | 'view' | 'edit';
     MatInputModule,
     MatSnackBarModule,
     MatTooltipModule,
-    MatDividerModule
+    MatDividerModule,
+    MatProgressSpinnerModule
   ],
   templateUrl: './captura.component.html',
   styleUrl: './captura.component.scss'
 })
-export class CapturaComponent {
-  private fb = inject(FormBuilder);
-  private snackBar = inject(MatSnackBar);
-  private cdr = inject(ChangeDetectorRef);
-  userContext = inject(UserContextService);
+export class CapturaComponent implements OnInit {
+  private fb             = inject(FormBuilder);
+  private snackBar       = inject(MatSnackBar);
+  private cdr            = inject(ChangeDetectorRef);
+  private capturaService = inject(CapturaService);
+  userContext            = inject(UserContextService);
 
-  // Permisos de esta pantalla
+  // Permisos
   canWrite = computed(() => this.userContext.canWrite('captura'));
   canRead  = computed(() => this.userContext.canRead('captura'));
 
-  // Dataset en memoria
-  records = signal<CapturaRecord[]>([
-    { id: 1, nombre: 'Juan',  apellido: 'Pérez',  email: 'juan@test.com',
-      telefono: '555-1111', direccion: 'Calle 1', ciudad: 'CDMX',    notas: '' },
-    { id: 2, nombre: 'María', apellido: 'López',  email: 'maria@test.com',
-      telefono: '555-2222', direccion: 'Calle 2', ciudad: 'GDL',     notas: 'VIP' },
-    { id: 3, nombre: 'Pedro', apellido: 'García', email: 'pedro@test.com',
-      telefono: '555-3333', direccion: 'Calle 3', ciudad: 'MTY',     notas: '' },
-    { id: 4, nombre: 'Ana',   apellido: 'Torres', email: 'ana@test.com',
-      telefono: '555-4444', direccion: 'Calle 4', ciudad: 'Puebla',  notas: '' },
-    { id: 5, nombre: 'Luis',  apellido: 'Ramos',  email: 'luis@test.com',
-      telefono: '555-5555', direccion: 'Calle 5', ciudad: 'Cancún',  notas: '' },
-    { id: 6, nombre: 'Sara',  apellido: 'Díaz',   email: 'sara@test.com',
-      telefono: '555-6666', direccion: 'Calle 6', ciudad: 'Mérida',  notas: '' },
-  ]);
+  // Estado
+  records   = signal<CapturaRecord[]>([]);
+  loading   = signal(false);
 
   // Paginación
   pageSize = 5;
   pageIndex = 0;
-  pagedRecords = computed(() => {
-    const start = this.pageIndex * this.pageSize;
-    return this.records().slice(start, start + this.pageSize);
-  });
 
   // Tabla
-  displayedColumns = computed(() => {
-    const base = ['id', 'nombre', 'apellido', 'email', 'ciudad'];
-    return [...base, 'acciones'];
-  });
+  displayedColumns: string[] = ['id', 'nombre', 'apellido', 'email', 'ciudad', 'acciones'];
 
   // Formulario
   formMode = signal<FormMode>('hidden');
   selectedRecord = signal<CapturaRecord | null>(null);
-  private nextId = 7;
 
   form: FormGroup = this.fb.group({
     nombre:    ['', Validators.required],
@@ -112,7 +85,34 @@ export class CapturaComponent {
 
   isViewMode = computed(() => this.formMode() === 'view');
 
-  // ── Acciones de tabla ────────────────────────────────────
+  ngOnInit(): void {
+    this.loadRecords();
+  }
+
+  // ── API calls ────────────────────────────────────────
+
+  getPagedRecords(): CapturaRecord[] {
+    const start = this.pageIndex * this.pageSize;
+    return this.records().slice(start, start + this.pageSize);
+  }
+
+  loadRecords(): void {
+  this.loading.set(true);
+  this.capturaService.getAll().subscribe({
+    next: (data) => {
+      this.records.set(data);
+      this.loading.set(false);
+      this.cdr.detectChanges();
+    },
+    error: () => {
+      this.snackBar.open('Error cargando registros', 'OK', { duration: 3000 });
+      this.loading.set(false);
+      this.cdr.detectChanges();
+    }
+  });
+}
+
+  // ── Acciones tabla ───────────────────────────────────
 
   onAdd(): void {
     this.form.reset();
@@ -141,22 +141,23 @@ export class CapturaComponent {
   }
 
   onDelete(record: CapturaRecord): void {
-    this.records.update(list => list.filter(r => r.id !== record.id));
-
-    // Ajustar página si quedó vacía
-    const totalAfter = this.records().length;
-    const maxPage = Math.max(0, Math.ceil(totalAfter / this.pageSize) - 1);
-    if (this.pageIndex > maxPage) this.pageIndex = maxPage;
-
-    if (this.selectedRecord()?.id === record.id) {
-      this.onCancel();
-    }
-
-    this.snackBar.open('Registro eliminado', 'OK', { duration: 3000 });
-    this.cdr.detectChanges();
+    this.capturaService.delete(record.id).subscribe({
+      next: () => {
+        this.records.update(list => list.filter(r => r.id !== record.id));
+        const totalAfter = this.records().length;
+        const maxPage = Math.max(0, Math.ceil(totalAfter / this.pageSize) - 1);
+        if (this.pageIndex > maxPage) this.pageIndex = maxPage;
+        if (this.selectedRecord()?.id === record.id) this.onCancel();
+        this.snackBar.open('Registro eliminado', 'OK', { duration: 3000 });
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.snackBar.open('Error eliminando registro', 'OK', { duration: 3000 });
+      }
+    });
   }
 
-  // ── Acciones de formulario ───────────────────────────────
+  // ── Acciones formulario ──────────────────────────────
 
   onSubmit(): void {
     if (this.form.invalid) return;
@@ -164,19 +165,34 @@ export class CapturaComponent {
     const values = this.form.value;
 
     if (this.formMode() === 'add') {
-      const newRecord: CapturaRecord = { id: this.nextId++, ...values };
-      this.records.update(list => [...list, newRecord]);
-      this.snackBar.open('Registro agregado', 'OK', { duration: 3000 });
+      const newRecord: CapturaRecord = { id: 0, ...values };
+      this.capturaService.add(newRecord).subscribe({
+        next: (created) => {
+          this.records.update(list => [...list, created]);
+          this.snackBar.open('Registro agregado', 'OK', { duration: 3000 });
+          this.onCancel();
+          this.cdr.detectChanges();
+        },
+        error: () => {
+          this.snackBar.open('Error agregando registro', 'OK', { duration: 3000 });
+        }
+      });
     } else if (this.formMode() === 'edit') {
-      const id = this.selectedRecord()!.id;
-      this.records.update(list =>
-        list.map(r => r.id === id ? { id, ...values } : r)
-      );
-      this.snackBar.open('Registro actualizado', 'OK', { duration: 3000 });
+      const record: CapturaRecord = { id: this.selectedRecord()!.id, ...values };
+      this.capturaService.update(record).subscribe({
+        next: (updated) => {
+          this.records.update(list =>
+            list.map(r => r.id === updated.id ? updated : r)
+          );
+          this.snackBar.open('Registro actualizado', 'OK', { duration: 3000 });
+          this.onCancel();
+          this.cdr.detectChanges();
+        },
+        error: () => {
+          this.snackBar.open('Error actualizando registro', 'OK', { duration: 3000 });
+        }
+      });
     }
-
-    this.onCancel();
-    this.cdr.detectChanges();
   }
 
   onCancel(): void {
