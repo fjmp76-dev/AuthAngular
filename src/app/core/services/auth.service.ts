@@ -5,12 +5,11 @@ import { Observable, from } from 'rxjs';
 import { AuthResponse, AuthUser, LoginRequest } from '../models/auth.models';
 import { UserContextService } from './user-context.service';
 import { firstValueFrom } from 'rxjs';
+import { environment } from '../../../environments/environment';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
-
-  private readonly API_URL = 'http://localhost:5160/api/auth';
-
+  private readonly API_URL = `${environment.apiUrl}/api/auth`;
   currentUser = signal<AuthUser | null>(null);
 
   private http = inject(HttpClient);

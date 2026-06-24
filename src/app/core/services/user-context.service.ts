@@ -6,12 +6,14 @@ import {
   CurrentUser, ICurrentUser, PermissionLevel,
   PermissionsResponse, AuthResponse
 } from '../models/auth.models';
+import { environment } from '../../../environments/environment';
+
 
 @Injectable({ providedIn: 'root' })
 export class UserContextService implements OnDestroy {
 
-  private readonly API_URL         = 'http://localhost:5160/api';
-  private readonly AUTH_URL        = 'http://localhost:5160/api/auth';
+  private readonly API_URL  = `${environment.apiUrl}/api`;
+  private readonly AUTH_URL = `${environment.apiUrl}/api/auth`;
   private readonly THRESHOLD_MS    = 30 * 1000;  // 30 segundos
   private readonly CHECK_INTERVAL  = 1000;       // intervalo de background check (1 seg)
 

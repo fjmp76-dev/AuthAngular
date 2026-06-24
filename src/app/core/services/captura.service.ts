@@ -2,11 +2,12 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { CapturaRecord } from '../models/auth.models';
+import { environment } from '../../../environments/environment';
 
 @Injectable({ providedIn: 'root' })
 export class CapturaService {
 
-  private readonly API_URL = 'http://localhost:5160/api/captura';
+  private readonly API_URL = `${environment.apiUrl}/api/captura`;
   private http = inject(HttpClient);
 
   getAll(): Observable<CapturaRecord[]> {
