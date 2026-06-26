@@ -68,12 +68,7 @@ private async loginAsync(request: LoginRequest): Promise<AuthResponse> {
     this.currentUser.set(user);
 
     await firstValueFrom(
-      this.userContext.initialize(
-        response.username,
-        response.role,
-        response.token,
-        new Date(response.expiresAt)
-      )
+      this.userContext.initialize(user)
     );
 
     // Navegar directamente desde el servicio

@@ -3,8 +3,9 @@ import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { Observable, tap, firstValueFrom } from 'rxjs';
 import {
-  CurrentUser, ICurrentUser, PermissionLevel,
-  PermissionsResponse, AuthResponse
+  CurrentUser, PermissionLevel,
+  PermissionsResponse, AuthResponse,
+  AuthUser
 } from '../models/auth.models';
 import { environment } from '../../../environments/environment';
 
@@ -52,14 +53,14 @@ export class UserContextService implements OnDestroy {
 
   // ── Inicialización ─────────────────────────────────────
 
-  initialize(username: string, role: string, token: string, expiresAt: Date): Observable<PermissionsResponse> {
-    return this.http.get<PermissionsResponse>(`${this.API_URL}/permissions/${username}`).pipe(
+  initialize(userI:AuthUser): Observable<PermissionsResponse> {
+    return this.http.get<PermissionsResponse>(`${this.API_URL}/permissions/${userI.username}`).pipe(
       tap(response => {
         if (response.success) {
-          const user: ICurrentUser = { username, role, token, expiresAt, permissions: response.permissions };
+          const user: CurrentUser = { ...userI, permissions: response.permissions };
           this.lastRefresh = Date.now();
           sessionStorage.setItem('current_user', JSON.stringify(user));
-          this.currentUser.set(new CurrentUser(user));
+          this.currentUser.set(user);
         }
       })
     );
@@ -72,7 +73,7 @@ export class UserContextService implements OnDestroy {
     try {
       const parsed = JSON.parse(stored);
       if (new Date() < new Date(parsed.expiresAt)) {
-        this.currentUser.set(new CurrentUser(parsed));
+        this.currentUser.set(parsed);
       } else {
         sessionStorage.removeItem('current_user');
       }
@@ -86,10 +87,10 @@ updateToken(token: string, expiresAt: Date): void {
   if (!user) return;
 
   // Actualizar UserContext
-  const updated: ICurrentUser = { ...user, token, expiresAt };
+  const updated: CurrentUser = { ...user, token, expiresAt };
   this.lastRefresh = Date.now();
   sessionStorage.setItem('current_user', JSON.stringify(updated));
-  this.currentUser.set(new CurrentUser(updated));
+  this.currentUser.set(updated);
 
   // Actualizar AuthService sessionStorage directamente
   const stored = sessionStorage.getItem('auth_user');

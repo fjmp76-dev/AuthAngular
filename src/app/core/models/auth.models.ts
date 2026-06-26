@@ -36,36 +36,11 @@ export interface PermissionsResponse {
   message: string;
 }
 
-export interface ICurrentUser {
-  username: string;
-  role: string;
-  token: string;
-  expiresAt: Date;
+export interface CurrentUser extends AuthUser{
   permissions: Permission[];
 }
 
-export class CurrentUser implements ICurrentUser {
-  username!: string;
-  role!: string;
-  token!: string;
-  expiresAt!: Date;
-  permissions!: Permission[];
-
-  constructor(user: ICurrentUser) {
-    this.username = user.username;
-    this.role = user.role;
-    this.token = user.token;
-    this.expiresAt = user.expiresAt;
-    this.permissions = user.permissions;
-  }
-
-  public CanAccessScreen(screen: string): boolean 
-  {
-    return this.permissions.some(p => p.screen.toLowerCase() === screen.toLowerCase() && p.level !== PermissionLevel.N);
-  }
-}
-
- export interface CapturaRecord {
+export interface CapturaRecord {
   id: number;
   nombre: string;
   apellido: string;
